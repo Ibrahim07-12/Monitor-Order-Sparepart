@@ -1,0 +1,459 @@
+.operator-view {
+  min-height: calc(100vh - 90px);
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: 30px 20px;
+}
+
+.operator-container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.operator-header {
+  background: white;
+  border-radius: 15px;
+  padding: 25px 30px;
+  margin-bottom: 30px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.operator-header .header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.operator-header h2 {
+  color: #333;
+  font-size: 26px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.operator-header p {
+  color: #666;
+  font-size: 15px;
+}
+
+/* Search Section */
+.search-section-operator {
+  background: white;
+  border-radius: 15px;
+  padding: 25px 30px;
+  margin-bottom: 30px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.search-grid-operator {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+}
+
+.search-input-operator {
+  padding: 12px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  font-family: inherit;
+}
+
+.search-input-operator:focus {
+  outline: none;
+  border-color: #0066cc;
+  box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+}
+
+.search-button-operator {
+  grid-column: span 4;
+  padding: 12px 24px;
+  background: #0066cc;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.3s ease;
+}
+
+.search-button-operator:hover {
+  background: #0052a3;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 102, 204, 0.3);
+}
+
+.search-button-operator:active {
+  transform: translateY(0);
+}
+
+/* Responsive Search */
+@media (max-width: 1024px) {
+  .search-grid-operator {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .search-button-operator {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 640px) {
+  .search-grid-operator {
+    grid-template-columns: 1fr;
+  }
+  
+  .search-button-operator {
+    grid-column: span 1;
+  }
+}
+
+/* Toggle Checkbox with Eye Icon */
+.toggle-arrived-checkbox {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 60px;
+  cursor: pointer;
+}
+
+.toggle-arrived-checkbox input[type="checkbox"] {
+  display: none;
+}
+
+.checkbox-slider {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.checkbox-slider svg {
+  font-size: 26px;
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.toggle-arrived-checkbox:hover .checkbox-slider {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+}
+
+/* Checked State - Eye with Slash (Hiding) */
+.toggle-arrived-checkbox input[type="checkbox"]:checked + .checkbox-slider {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.toggle-arrived-checkbox input[type="checkbox"]:checked:hover + .checkbox-slider {
+  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+}
+
+/* Pulse animation when checked */
+.toggle-arrived-checkbox input[type="checkbox"]:checked + .checkbox-slider {
+  animation: pulse-shadow 2s infinite;
+}
+
+@keyframes pulse-shadow {
+  0%, 100% {
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+  }
+  50% {
+    box-shadow: 0 4px 16px rgba(239, 68, 68, 0.5);
+  }
+}
+
+.status-tabs {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+}
+
+.status-tab {
+  padding: 12px 25px;
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.status-tab:hover {
+  border-color: #667eea;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.status-tab.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-color: #667eea;
+}
+
+.status-count {
+  background: rgba(255, 255, 255, 0.3);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.status-tab.active .status-count {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.hide-arrived-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 1px solid #fbbf24;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  color: #92400e;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(251, 191, 36, 0.2);
+}
+
+.hide-arrived-info svg {
+  font-size: 16px;
+  color: #d97706;
+}
+
+.spareparts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 25px;
+}
+
+.sparepart-card {
+  background: white;
+  border-radius: 15px;
+  padding: 25px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.sparepart-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 5px;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+}
+
+.sparepart-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.sparepart-card.arrived::before {
+  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  gap: 15px;
+}
+
+.card-title {
+  flex: 1;
+}
+
+.card-title h3 {
+  color: #333;
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 5px;
+  line-height: 1.3;
+}
+
+.card-title .specification {
+  color: #666;
+  font-size: 14px;
+  font-style: italic;
+}
+
+.status-badge {
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-badge.waiting {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  color: white;
+}
+
+.status-badge.arrived {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+}
+
+.card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.info-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  color: #555;
+  font-size: 14px;
+}
+
+.info-icon {
+  color: #667eea;
+  font-size: 16px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.info-label {
+  font-weight: 600;
+  color: #333;
+  min-width: 80px;
+}
+
+.info-value {
+  flex: 1;
+  word-break: break-word;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 80px 20px;
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.empty-icon {
+  font-size: 80px;
+  color: #ddd;
+  margin-bottom: 20px;
+}
+
+.empty-state h3 {
+  color: #666;
+  font-size: 20px;
+  margin-bottom: 10px;
+}
+
+.empty-state p {
+  color: #999;
+  font-size: 15px;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 100px 20px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .operator-view {
+    padding: 20px 15px;
+  }
+
+  .operator-header {
+    padding: 20px;
+  }
+
+  .operator-header .header-content {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .toggle-arrived-checkbox {
+    width: 50px;
+    height: 50px;
+  }
+
+  .checkbox-slider svg {
+    font-size: 22px;
+  }
+
+  .operator-header h2 {
+    font-size: 22px;
+  }
+
+  .spareparts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .status-tabs {
+    gap: 10px;
+  }
+
+  .status-tab {
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .sparepart-card {
+    padding: 20px;
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .card-title h3 {
+    font-size: 18px;
+  }
+
+  .info-label {
+    min-width: 70px;
+    font-size: 13px;
+  }
+
+  .info-value {
+    font-size: 13px;
+  }
+}
