@@ -10,6 +10,13 @@ service cloud.firestore {
       // Allow write (create, update, delete) if user is authenticated
       allow write: if request.auth != null;
     }
+
+    // Allow read/write to appSettings/ui so UI flags (like autoScroll) can be updated
+    // NOTE: This is permissive and should be secured (only allow admin) for production.
+    match /appSettings/ui {
+      allow read: if true;
+      allow write: if true;
+    }
     
     // Deny all other access
     match /{document=**} {

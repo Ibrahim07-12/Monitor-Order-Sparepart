@@ -1,30 +1,42 @@
-import { useState } from 'react';
-import { FaEye, FaEyeSlash, FaExclamationCircle } from 'react-icons/fa';
-import './AdminLogin.css';
+import { useState } from "react";
+import { FaEye, FaEyeSlash, FaExclamationCircle } from "react-icons/fa";
+import "./AdminLogin.css";
 
-const ADMIN_CREDENTIALS = {
-  id: 'sparepartfoundry',
-  password: 'KomatsuNumber1'
+const ADMIN_USERS = {
+  sparepartfoundry: { password: "KomatsuNumber1", plant: "Foundry" },
+  sparepartassambely: { password: "Komatsu0712", plant: "Assambly" },
+  sparepartfabrication: { password: "Komatsu0704", plant: "Fabrication" },
+  spareparthydraulic: { password: "Komatsu1204", plant: "Hydraulic" },
+  sparepartkbn: { password: "Komatsu1274", plant: "KBN" },
+  sparepartcibitung: { password: "Komatsu7004", plant: "Cibitung" },
 };
 
 const AdminLogin = ({ onClose, onLoginSuccess }) => {
-  const [adminId, setAdminId] = useState('');
-  const [password, setPassword] = useState('');
+  const [adminId, setAdminId] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
     // Simulate a small delay for better UX
     setTimeout(() => {
-      if (adminId === ADMIN_CREDENTIALS.id && password === ADMIN_CREDENTIALS.password) {
-        onLoginSuccess();
+      const user = ADMIN_USERS[adminId];
+      if (user && password === user.password) {
+        // store admin plant in localStorage for AdminView to pick up
+        try {
+          localStorage.setItem("isAdmin", "true");
+          localStorage.setItem("adminPlant", user.plant);
+        } catch (e) {
+          // ignore storage errors
+        }
+        onLoginSuccess(user.plant);
       } else {
-        setError('Invalid ID or password. Please try again.');
+        setError("Invalid ID or password. Please try again.");
       }
       setLoading(false);
     }, 500);
@@ -63,7 +75,7 @@ const AdminLogin = ({ onClose, onLoginSuccess }) => {
             <label htmlFor="admin-password">Password</label>
             <div className="admin-input-wrapper">
               <input
-                type={showPassword ? 'text' : 'password'}
+                type={showPassword ? "text" : "password"}
                 id="admin-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -74,7 +86,7 @@ const AdminLogin = ({ onClose, onLoginSuccess }) => {
                 type="button"
                 className="admin-password-toggle"
                 onClick={() => setShowPassword(!showPassword)}
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? <FaEyeSlash /> : <FaEye />}
               </button>
@@ -82,11 +94,19 @@ const AdminLogin = ({ onClose, onLoginSuccess }) => {
           </div>
 
           <div className="admin-buttons">
-            <button type="button" className="admin-button cancel" onClick={onClose}>
+            <button
+              type="button"
+              className="admin-button cancel"
+              onClick={onClose}
+            >
               Cancel
             </button>
-            <button type="submit" className="admin-button submit" disabled={loading}>
-              {loading ? 'Processing...' : 'Login'}
+            <button
+              type="submit"
+              className="admin-button submit"
+              disabled={loading}
+            >
+              {loading ? "Processing..." : "Login"}
             </button>
           </div>
         </form>

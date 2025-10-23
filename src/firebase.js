@@ -12,7 +12,7 @@ const firebaseConfig = {
   storageBucket: "sparepart-foundry-33835.firebasestorage.app",
   messagingSenderId: "954698431161",
   appId: "1:954698431161:web:a03287a6a75a27541f7968",
-  measurementId: "G-8BCF8TDEPT"
+  measurementId: "G-8BCF8TDEPT",
 };
 
 // Initialize Firebase

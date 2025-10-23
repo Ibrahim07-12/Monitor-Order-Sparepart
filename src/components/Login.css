@@ -4,19 +4,23 @@
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5)),
-              url('/factory-bg.jpg') center/cover no-repeat;
+    url("/factory-bg.jpg") center/cover no-repeat;
   padding: 20px;
   position: relative;
 }
 
 .login-container::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(11, 61, 145, 0.85) 0%,
+    rgba(15, 118, 110, 0.65) 100%
+  );
   opacity: 0.8;
   z-index: 0;
 }
@@ -125,7 +129,7 @@
 .login-button {
   width: 100%;
   padding: 15px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #0b3d91;
   color: white;
   border: none;
   border-radius: 10px;
@@ -133,12 +137,12 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 6px 18px rgba(11, 61, 145, 0.18);
 }
 
 .login-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 8px 24px rgba(11, 61, 145, 0.22);
 }
 
 .login-button:active {

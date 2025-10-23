@@ -1,15 +1,20 @@
-import { signOut } from 'firebase/auth';
-import { auth } from '../firebase';
-import { FaSignOutAlt, FaUserShield, FaArrowLeft, FaClipboardList } from 'react-icons/fa';
-import './Header.css';
+import { signOut } from "firebase/auth";
+import { auth } from "../firebase";
+import {
+  FaSignOutAlt,
+  FaUserShield,
+  FaArrowLeft,
+  FaClipboardList,
+} from "react-icons/fa";
+import "./Header.css";
 
 const Header = ({ isAdmin, onAdminLogin, onAdminLogout }) => {
   const handleLogout = async () => {
     try {
       await signOut(auth);
     } catch (error) {
-      console.error('Logout error:', error);
-      alert('An error occurred during logout');
+      console.error("Logout error:", error);
+      alert("An error occurred during logout");
     }
   };
 
@@ -27,7 +32,7 @@ const Header = ({ isAdmin, onAdminLogin, onAdminLogout }) => {
             <FaClipboardList className="header-icon" />
             <h1>Sparepart Order Status Monitor</h1>
           </div>
-          <p className="company-name">PT. Komatsu Indonesia - Foundry Plant</p>
+          <p className="company-name">PT. Komatsu Indonesia</p>
         </div>
 
         <div className="header-right">

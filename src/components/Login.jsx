@@ -1,36 +1,38 @@
-import { useState } from 'react';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../firebase';
-import { FaEye, FaEyeSlash, FaExclamationCircle } from 'react-icons/fa';
-import './Login.css';
+import { useState } from "react";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../firebase";
+import { FaEye, FaEyeSlash, FaExclamationCircle } from "react-icons/fa";
+import "./Login.css";
 
 const Login = ({ onLoginSuccess }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
       onLoginSuccess();
     } catch (error) {
-      console.error('Login error:', error);
-      if (error.code === 'auth/invalid-credential' || 
-          error.code === 'auth/user-not-found' || 
-          error.code === 'auth/wrong-password') {
-        setError('Invalid email or password. Please try again.');
-      } else if (error.code === 'auth/invalid-email') {
-        setError('Invalid email format.');
-      } else if (error.code === 'auth/too-many-requests') {
-        setError('Too many login attempts. Please try again later.');
+      console.error("Login error:", error);
+      if (
+        error.code === "auth/invalid-credential" ||
+        error.code === "auth/user-not-found" ||
+        error.code === "auth/wrong-password"
+      ) {
+        setError("Invalid email or password. Please try again.");
+      } else if (error.code === "auth/invalid-email") {
+        setError("Invalid email format.");
+      } else if (error.code === "auth/too-many-requests") {
+        setError("Too many login attempts. Please try again later.");
       } else {
-        setError('An error occurred. Please try again.');
+        setError("An error occurred. Please try again.");
       }
     } finally {
       setLoading(false);
@@ -71,7 +73,7 @@ const Login = ({ onLoginSuccess }) => {
             <label htmlFor="password">Password</label>
             <div className="input-wrapper">
               <input
-                type={showPassword ? 'text' : 'password'}
+                type={showPassword ? "text" : "password"}
                 id="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -83,7 +85,7 @@ const Login = ({ onLoginSuccess }) => {
                 type="button"
                 className="password-toggle"
                 onClick={() => setShowPassword(!showPassword)}
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? <FaEyeSlash /> : <FaEye />}
               </button>
@@ -91,7 +93,7 @@ const Login = ({ onLoginSuccess }) => {
           </div>
 
           <button type="submit" className="login-button" disabled={loading}>
-            {loading ? 'Processing...' : 'Login'}
+            {loading ? "Processing..." : "Login"}
           </button>
         </form>
       </div>
