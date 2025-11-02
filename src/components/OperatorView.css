@@ -649,7 +649,7 @@
   border-radius: 15px;
   padding: 20px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-  overflow-x: visible;
+  overflow-x: auto;
   width: 100%;
 }
 
@@ -661,6 +661,7 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
   overflow: hidden;
   table-layout: fixed;
+  min-width: 1000px;
 }
 
 .operator-table thead {
@@ -701,6 +702,7 @@
 } /* Order Status */
 .operator-table th:nth-child(8) {
   width: 33%;
+  min-width: 500px;
 } /* Progress */
 
 .operator-table tbody tr {
@@ -864,14 +866,46 @@
   .operator-table-container {
     padding: 15px;
     overflow-x: auto;
-    /* Force vertical scrolling when table is tall so auto-scroll works */
     max-height: calc(100vh - 220px);
     overflow-y: auto;
+    padding-right: 30px;
   }
 
   .operator-table {
-    min-width: 800px;
+    min-width: 1200px;
   }
+
+  .operator-table th,
+  .operator-table td {
+    padding: 12px 16px;
+  }
+
+  /* Perlebar kolom untuk tablet/mobile */
+  .operator-table th:nth-child(1) {
+    width: 18%;
+  } /* Sparepart Name */
+  .operator-table th:nth-child(2) {
+    width: 16%;
+  } /* Specification */
+  .operator-table th:nth-child(3) {
+    width: 12%;
+  } /* Machine */
+  .operator-table th:nth-child(4) {
+    width: 8%;
+  } /* QTY */
+  .operator-table th:nth-child(5) {
+    width: 11%;
+  } /* Ordered By */
+  .operator-table th:nth-child(6) {
+    width: 10%;
+  } /* Order Date */
+  .operator-table th:nth-child(7) {
+    width: 10%;
+  } /* Order Status */
+  .operator-table th:nth-child(8) {
+    width: 45%;
+    min-width: 700px;
+  } /* Progress - tablet/mobile */
 }
 
 @media (max-width: 900px) {
@@ -902,6 +936,46 @@
     font-size: 13px;
     padding: 7px 6px;
   }
+
+  .operator-table {
+    min-width: 1200px;
+  }
+
+  .operator-table-container {
+    padding-right: 30px;
+  }
+
+  .operator-table th,
+  .operator-table td {
+    padding: 12px 16px;
+  }
+
+  /* Perlebar kolom untuk mobile */
+  .operator-table th:nth-child(1) {
+    width: 18%;
+  } /* Sparepart Name */
+  .operator-table th:nth-child(2) {
+    width: 16%;
+  } /* Specification */
+  .operator-table th:nth-child(3) {
+    width: 12%;
+  } /* Machine */
+  .operator-table th:nth-child(4) {
+    width: 8%;
+  } /* QTY */
+  .operator-table th:nth-child(5) {
+    width: 11%;
+  } /* Ordered By */
+  .operator-table th:nth-child(6) {
+    width: 10%;
+  } /* Order Date */
+  .operator-table th:nth-child(7) {
+    width: 10%;
+  } /* Order Status */
+  .operator-table th:nth-child(8) {
+    width: 45%;
+    min-width: 700px;
+  } /* Progress - mobile only */
 }
 
 /* Hapus/matikan responsive table card style */
@@ -944,14 +1018,47 @@
   }
 
   .operator-table-container {
-    padding: 0;
+    padding: 15px;
+    padding-right: 30px;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
 
   .operator-table.responsive-table {
-    min-width: 800px;
+    min-width: 1200px;
     width: 100%;
     border-collapse: collapse;
   }
+
+  .operator-table.responsive-table th,
+  .operator-table.responsive-table td {
+    padding: 12px 16px;
+  }
+
+  /* Perlebar kolom untuk mobile */
+  .operator-table.responsive-table th:nth-child(1) {
+    width: 18%;
+  } /* Sparepart Name */
+  .operator-table.responsive-table th:nth-child(2) {
+    width: 16%;
+  } /* Specification */
+  .operator-table.responsive-table th:nth-child(3) {
+    width: 12%;
+  } /* Machine */
+  .operator-table.responsive-table th:nth-child(4) {
+    width: 8%;
+  } /* QTY */
+  .operator-table.responsive-table th:nth-child(5) {
+    width: 11%;
+  } /* Ordered By */
+  .operator-table.responsive-table th:nth-child(6) {
+    width: 10%;
+  } /* Order Date */
+  .operator-table.responsive-table th:nth-child(7) {
+    width: 10%;
+  } /* Order Status */
+  .operator-table.responsive-table th:nth-child(8) {
+    width: 45%;
+    min-width: 700px;
+  } /* Progress - mobile only */
 }

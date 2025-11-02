@@ -1,0 +1,54 @@
+/* PMPartsTable.css */
+.pm-drag-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e0 #f3f4f6;
+}
+
+.pm-drag-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+
+.pm-drag-scroll::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 10px;
+}
+
+.pm-drag-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e0;
+  border-radius: 10px;
+}
+
+.pm-drag-scroll::-webkit-scrollbar-thumb:hover {
+  background: #a0aec0;
+}
+
+.pm-small-table {
+  min-width: 100%;
+}
+
+.pm-small-badge {
+  white-space: nowrap;
+}
+
+@keyframes pmBlinkRed {
+  0% {
+    background: #e5e7eb;
+    color: #1e293b;
+    border: none;
+  }
+  40% {
+    background: #fee2e2;
+    color: #dc2626;
+    border: 2px solid #dc2626;
+  }
+  60% {
+    background: #fee2e2;
+    color: #dc2626;
+    border: 2px solid #dc2626;
+  }
+  100% {
+    background: #e5e7eb;
+    color: #1e293b;
+    border: none;
+  }
+}

@@ -1,0 +1,172 @@
+/* CSS khusus table sparepart admin */
+.admin-table-container {
+  background: white;
+  border-radius: 15px;
+  padding: 20px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  overflow-x: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1000px;
+}
+
+.admin-table thead {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.admin-table th {
+  padding: 15px 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.admin-table th:first-child {
+  border-radius: 10px 0 0 0;
+}
+
+.admin-table th:last-child {
+  border-radius: 0 10px 0 0;
+}
+
+.admin-table tbody tr {
+  border-bottom: 1px solid #f0f0f0;
+  transition: background 0.2s ease;
+}
+
+.admin-table tbody tr:hover {
+  background: #f9fafb;
+}
+
+.admin-table td {
+  padding: 15px 12px;
+  font-size: 14px;
+  color: #555;
+}
+
+.stepper-row {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-start;
+}
+.step-toggle-table {
+  min-width: 90px;
+  padding: 7px 12px;
+  border-radius: 7px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  background: #e5e7eb;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.step-toggle-table.step-complete {
+  background: #d1fae5;
+  color: #059669;
+}
+.step-toggle-table:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.urgency-badge {
+  display: inline-block;
+  padding: 5px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  background: #e5e7eb;
+  color: #6b7280;
+}
+.urgency-badge.urgent {
+  background: #fee2e2;
+  color: #dc2626;
+}
+.urgency-badge.normal {
+  background: #dbeafe;
+  color: #2563eb;
+}
+.notes-cell {
+  min-width: 180px;
+  max-width: 350px;
+  white-space: pre-line;
+  background: #f3f4f6;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: #333;
+}
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+.icon-button {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.icon-button.edit {
+  background: #dbeafe;
+  color: #2563eb;
+}
+.icon-button.edit:hover {
+  background: #3b82f6;
+  color: white;
+}
+.icon-button.delete {
+  background: #fee2e2;
+  color: #dc2626;
+}
+.icon-button.delete:hover {
+  background: #ef4444;
+  color: white;
+}
+.icon-button.toggle-hide {
+  background: #e0e7ff;
+  color: #6366f1;
+}
+.icon-button.toggle-hide:hover {
+  background: #818cf8;
+  color: white;
+}
+.icon-button.toggle-hide.hidden {
+  background: #fef3c7;
+  color: #d97706;
+}
+.icon-button.toggle-hide.hidden:hover {
+  background: #fbbf24;
+  color: white;
+}
+.icon-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.empty-state-admin {
+  text-align: center;
+  padding: 60px 20px;
+}
+.empty-icon-admin {
+  font-size: 60px;
+  color: #ddd;
+  margin-bottom: 15px;
+}
+.empty-state-admin h3 {
+  color: #666;
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+.empty-state-admin p {
+  color: #999;
+  font-size: 14px;
+}
