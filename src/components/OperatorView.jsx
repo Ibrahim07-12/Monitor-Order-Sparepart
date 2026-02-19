@@ -15,6 +15,7 @@ import {
   FaInbox,
 } from "react-icons/fa";
 import "./OperatorView.css";
+import GlobalWarningNotification from "./GlobalWarningNotification";
 
 const OperatorView = () => {
   // Notifikasi PM mendekati waktu
@@ -57,6 +58,7 @@ const OperatorView = () => {
     });
     return () => unsub && unsub();
   }, []);
+
   // Deprecated - we keep getAllSpareparts for one-off fetches if needed
 
   const formatDate = (timestamp) => {
@@ -778,6 +780,9 @@ const OperatorView = () => {
           </div>
         )}
       </div>
+
+      {/* Global Warning Notification */}
+      <GlobalWarningNotification />
     </div>
   );
 };

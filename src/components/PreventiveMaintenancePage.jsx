@@ -1,5 +1,5 @@
 ﻿import { useState } from "react";
-import { FaSearch, FaPlus } from "react-icons/fa";
+import { FaSearch, FaPlus, FaChartLine } from "react-icons/fa";
 import React from "react";
 import * as XLSX from "xlsx";
 import {
@@ -9,6 +9,8 @@ import {
 import PMPartsTable from "./PM/PMPartsTable";
 import PMAddPartModal from "./PM/PMAddPartModal";
 import PMEditPartModal from "./PM/PMEditPartModal";
+import MonitoringPage from "./Monitoring/MonitoringPage";
+import GlobalWarningNotification from "./GlobalWarningNotification";
 
 const PLANTS = [
   "Foundry",
@@ -47,6 +49,8 @@ const PreventiveMaintenancePage = () => {
   // State untuk notifikasi PM mendekati
   const [showPmNotif, setShowPmNotif] = useState(false);
   const [pmNotifText, setPmNotifText] = useState("");
+  // State untuk monitoring
+  const [showMonitoring, setShowMonitoring] = useState(false);
   const [partsPerMesin, setPartsPerMesin] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -329,8 +333,29 @@ const PreventiveMaintenancePage = () => {
     }
   };
 
+  // If monitoring is active, show only MonitoringPage as full screen overlay
+  if (showMonitoring) {
+    return (
+      <>
+        <GlobalWarningNotification />
+        <MonitoringPage
+          machineName={selectedMesin}
+          onBack={() => setShowMonitoring(false)}
+        />
+      </>
+    );
+  }
+
   return (
-    <div className="pm-page" style={{ position: "relative" }}>
+    <div
+      className="pm-page"
+      style={{
+        position: "relative",
+        overflow: "visible",
+        pointerEvents: "auto",
+      }}
+    >
+      <GlobalWarningNotification />
       {/* Notifikasi PM mendekati waktu, kotak kuning di pojok kanan atas */}
       {showPmNotif && (
         <div
@@ -364,17 +389,41 @@ const PreventiveMaintenancePage = () => {
           0% { opacity: 0; transform: translateY(-16px); }
           100% { opacity: 1; transform: translateY(0); }
         }
+        
+        /* Ensure dropdown options are visible */
+        .pm-plant-select select,
+        .pm-mesin-select select {
+          position: relative !important;
+          z-index: 50 !important;
+        }
+        
+        .pm-plant-select select option,
+        .pm-mesin-select select option {
+          background: white !important;
+          color: black !important;
+          padding: 8px !important;
+        }
       `}</style>
-      <div className="pm-plant-select" style={{ marginBottom: 18 }}>
+      <div
+        className="pm-plant-select"
+        style={{
+          marginBottom: 18,
+          position: "relative",
+          zIndex: 50,
+          pointerEvents: "auto",
+        }}
+      >
         <label style={{ fontWeight: 700, fontSize: "1.08em", marginRight: 10 }}>
           Pilih Plant:
         </label>
         <select
           value={selectedPlant}
           onChange={(e) => {
+            console.log("Plant changed:", e.target.value);
             setSelectedPlant(e.target.value);
             setSelectedMesin("");
           }}
+          onClick={(e) => console.log("Plant select clicked")}
           style={{
             padding: "8px 18px",
             borderRadius: 8,
@@ -388,6 +437,8 @@ const PreventiveMaintenancePage = () => {
             marginRight: 18,
             minWidth: 140,
             transition: "border 0.2s",
+            cursor: "pointer",
+            pointerEvents: "auto",
           }}
         >
           {PLANTS.map((plant) => (
@@ -397,13 +448,25 @@ const PreventiveMaintenancePage = () => {
           ))}
         </select>
       </div>
-      <div className="pm-mesin-select" style={{ marginBottom: 32 }}>
+      <div
+        className="pm-mesin-select"
+        style={{
+          marginBottom: 32,
+          position: "relative",
+          zIndex: 49,
+          pointerEvents: "auto",
+        }}
+      >
         <label style={{ fontWeight: 700, fontSize: "1.08em", marginRight: 10 }}>
           Pilih Mesin:
         </label>
         <select
           value={selectedMesin}
-          onChange={(e) => setSelectedMesin(e.target.value)}
+          onChange={(e) => {
+            console.log("Mesin changed:", e.target.value);
+            setSelectedMesin(e.target.value);
+          }}
+          onClick={(e) => console.log("Mesin select clicked")}
           style={{
             padding: "8px 18px",
             borderRadius: 8,
@@ -416,6 +479,8 @@ const PreventiveMaintenancePage = () => {
             boxShadow: "0 1px 6px rgba(37,99,235,0.07)",
             minWidth: 180,
             transition: "border 0.2s",
+            cursor: "pointer",
+            pointerEvents: "auto",
           }}
         >
           <option value="">-- Pilih Mesin --</option>
@@ -483,6 +548,34 @@ const PreventiveMaintenancePage = () => {
               }}
             >
               Hapus Mesin
+            </button>
+            <button
+              className="action-button"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                fontWeight: 700,
+                fontSize: "1.08em",
+                padding: "12px 32px",
+                borderRadius: 16,
+                background: "linear-gradient(90deg,#059669 0%,#10b981 100%)",
+                color: "#fff",
+                boxShadow: "0 2px 12px rgba(16,185,129,0.15)",
+                border: "2px solid #059669",
+                cursor: selectedMesin ? "pointer" : "not-allowed",
+                opacity: selectedMesin ? 1 : 0.6,
+                transition: "background 0.2s",
+              }}
+              disabled={!selectedMesin}
+              onClick={() => {
+                if (selectedMesin) {
+                  setShowMonitoring(true);
+                }
+              }}
+            >
+              <FaChartLine style={{ marginRight: "6px", fontSize: "1.2em" }} />
+              Monitoring Mesin
             </button>
           </div>
         </div>

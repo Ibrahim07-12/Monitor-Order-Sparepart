@@ -1,0 +1,496 @@
+/* ===== Container & Layout ===== */
+.monitoring-dashboard {
+  padding: 24px;
+  background: #f8fafc;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.dashboard-container {
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+/* Adjust padding when space is limited */
+@media (min-width: 1024px) and (max-width: 1399px) {
+  .monitoring-dashboard {
+    padding: 16px;
+  }
+
+  .dashboard-header {
+    margin-bottom: 16px;
+  }
+
+  .dashboard-title {
+    font-size: 18px;
+  }
+
+  .dashboard-subtitle {
+    font-size: 13px;
+  }
+}
+
+/* ===== Header ===== */
+.dashboard-header {
+  margin-bottom: 24px;
+}
+
+.dashboard-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 8px;
+}
+
+.dashboard-subtitle {
+  margin: 0;
+  font-size: 16px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* ===== Gauges Grid - Responsive ===== */
+.gauges-grid {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+/* Mobile First - Stack vertically */
+@media (max-width: 767px) {
+  .gauges-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .gauge-card {
+    padding: 20px;
+  }
+}
+
+/* Tablet - 2 columns */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .gauges-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+}
+
+/* Laptop with sidebar open - compact gauges */
+@media (min-width: 1024px) and (max-width: 1399px) {
+  .gauges-grid {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+  }
+
+  .gauge-card {
+    padding: 12px;
+    min-width: 140px;
+  }
+
+  .gauge-title {
+    font-size: 10px;
+    margin-bottom: 8px;
+  }
+
+  .gauge-svg-container {
+    width: 140px !important;
+    height: 110px !important;
+  }
+
+  .value-box {
+    padding: 6px 12px !important;
+    min-width: 90px !important;
+    margin-top: 4px !important;
+  }
+
+  .value-display {
+    font-size: 22px !important;
+  }
+
+  .value-vibration-number {
+    font-size: 22px !important;
+  }
+
+  .value-vibration-unit {
+    font-size: 12px !important;
+  }
+}
+
+/* Desktop normal - 5 columns horizontal */
+@media (min-width: 1400px) {
+  .gauges-grid {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 20px;
+  }
+}
+
+/* Extra large screens - prevent gauges from getting too wide */
+@media (min-width: 1920px) {
+  .gauges-grid {
+    max-width: 1800px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+/* ===== Gauge Card ===== */
+.gauge-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 200px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.gauge-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.gauge-title {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 600;
+  margin-bottom: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: center;
+}
+
+.gauge-svg-container {
+  position: relative;
+  width: 200px;
+  height: 160px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gauge-svg {
+  overflow: visible;
+  display: block;
+}
+
+/* ===== Value Display Box ===== */
+.value-box {
+  background: #fff;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 24px;
+  min-width: 120px;
+  text-align: center;
+  margin-top: 8px;
+}
+
+.value-display {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.value-vibration {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6px;
+}
+
+.value-vibration-number {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.value-vibration-unit {
+  font-size: 16px;
+  font-weight: 600;
+  color: #64748b;
+  line-height: 1;
+}
+
+/* ===== Chart Container ===== */
+.chart-container {
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  margin-top: 24px;
+  overflow: hidden;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.chart-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.chart-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Date picker styling */
+input[type="date"] {
+  font-family: inherit;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
+  filter: invert(0.5);
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+/* Chart responsive adjustments */
+@media (min-width: 1024px) and (max-width: 1399px) {
+  .chart-container {
+    padding: 16px;
+    margin-top: 16px;
+  }
+
+  .chart-header {
+    margin-bottom: 16px;
+    gap: 12px;
+  }
+
+  .chart-title {
+    font-size: 16px;
+  }
+}
+
+.filter-button {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  background: #f1f5f9;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  text-transform: capitalize;
+  transition: all 0.2s;
+}
+
+.filter-button:hover {
+  background: #e2e8f0;
+}
+
+.filter-button.active {
+  background: #1e40af;
+  color: #fff;
+}
+
+.chart-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* ===== Legend ===== */
+.chart-legend {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.legend-color {
+  width: 16px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+/* ===== Responsive Chart ===== */
+@media (max-width: 767px) {
+  .chart-container {
+    padding: 16px;
+    overflow-x: auto;
+  }
+
+  .chart-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .dashboard-container {
+    padding: 16px;
+  }
+
+  .monitoring-dashboard {
+    padding: 16px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .chart-container {
+    padding: 20px;
+  }
+}
+
+/* ===== Individual Parameter Charts ===== */
+.individual-charts-container {
+  margin-top: 32px;
+}
+
+.individual-charts-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.section-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.bar-chart-date-picker {
+  padding: 8px 12px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.bar-chart-date-picker:hover {
+  border-color: #3b82f6;
+}
+
+.bar-chart-date-picker:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.individual-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 20px;
+}
+
+.individual-chart-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  min-width: 0; /* Prevent overflow */
+}
+
+.individual-chart-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 12px 0;
+  text-align: center;
+}
+
+.individual-chart-unit {
+  font-size: 12px;
+  color: #64748b;
+  margin: 8px 0 0 0;
+  text-align: center;
+  font-weight: 500;
+}
+
+/* Responsive individual charts */
+@media (max-width: 767px) {
+  .individual-charts-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .individual-chart-card {
+    padding: 16px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .individual-charts-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+  
+  .individual-chart-card {
+    padding: 18px;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1399px) {
+  .individual-charts-container {
+    margin-top: 20px;
+  }
+
+  .section-title {
+    font-size: 18px;
+    margin-bottom: 16px;
+  }
+
+  .individual-charts-grid {
+    grid-template-columns: repeat(2, 1fr); /* 2 kolom agar tidak berdempetan */
+    gap: 20px;
+  }
+
+  .individual-chart-card {
+    padding: 18px;
+  }
+
+  .individual-chart-title {
+    font-size: 14px;
+    margin-bottom: 10px;
+  }
+
+  .individual-chart-unit {
+    font-size: 11px;
+    margin-top: 6px;
+  }
+}
+
+/* ===== Utility Classes ===== */
+.transition-smooth {
+  transition: all 0.3s ease;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

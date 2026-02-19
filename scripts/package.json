@@ -1,0 +1,9 @@
+{
+  "type": "module",
+  "name": "firestore-scripts",
+  "version": "1.0.0",
+  "description": "Scripts for populating Firestore data",
+  "dependencies": {
+    "firebase-admin": "^13.6.0"
+  }
+}

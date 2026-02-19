@@ -35,6 +35,7 @@ import "./AdminView.css";
 import AdminSparepartForm from "./AdminSparepartForm";
 import PreventiveMaintenancePage from "./PreventiveMaintenancePage";
 import AdminSparepartTable from "./AdminSparepartTable";
+import GlobalWarningNotification from "./GlobalWarningNotification";
 
 const AdminView = ({ adminPlant }) => {
   const [spareparts, setSpareparts] = useState([]);
@@ -77,6 +78,7 @@ const AdminView = ({ adminPlant }) => {
   // Auto-scroll settings (admin controls)
   const [autoScrollEnabled, setAutoScrollEnabled] = useState(false);
   const [autoScrollSpeed, setAutoScrollSpeed] = useState(20);
+
   useEffect(() => {
     const unsub = subscribeToAppSettings((res) => {
       console.debug("subscribeToAppSettings (admin) ->", res);
@@ -125,9 +127,13 @@ const AdminView = ({ adminPlant }) => {
       (value) => value.trim() === ""
     );
     if (allEmpty) {
-      setFilteredData(spareparts);
+      // Filter by plant when clearing search
+      const plantFiltered = spareparts.filter(
+        (item) => (item.plant || "") === currentAdminPlant
+      );
+      setFilteredData(plantFiltered);
     }
-  }, [searchFilters, spareparts]);
+  }, [searchFilters, spareparts, currentAdminPlant]);
 
   const handleSearch = () => {
     const hasFilter = Object.values(searchFilters).some(
@@ -762,6 +768,9 @@ const AdminView = ({ adminPlant }) => {
           currentAdminPlant={currentAdminPlant}
         />
       )}
+
+      {/* Global Warning Notification */}
+      <GlobalWarningNotification />
     </div>
   );
 };
