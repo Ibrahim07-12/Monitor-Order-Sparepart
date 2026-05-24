@@ -1,7 +1,17 @@
 import React, { useState, useEffect } from "react";
+import * as XLSX from "xlsx";
 import { updateGlobalWarning } from "../../globalWarnings";
 import { db } from "../../firebase";
-import { doc, onSnapshot } from "firebase/firestore";
+import {
+  doc,
+  onSnapshot,
+  collection,
+  query,
+  where,
+  orderBy,
+  limit,
+  getDocs,
+} from "firebase/firestore";
 import {
   formatVibrationValue,
   formatNumberWithSuffix,
@@ -14,12 +24,113 @@ import {
 } from "./utils/chartUtils";
 import "./MonitoringDashboard.css";
 
+const MOTOR_MAPPING = {
+  "Motor Mainshakeout": "motor_main_shakeout",
+  "Motor Sand Crusher": "motor_sand_crusher",
+  "Shakeout Reguler": "motor_main_shakeout",
+};
+
+const formatDateKey = (dateInput) => {
+  const date = new Date(dateInput);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const addDaysToDateKey = (dateKey, dayOffset) => {
+  const date = new Date(`${dateKey}T00:00:00`);
+  date.setDate(date.getDate() + dayOffset);
+  return formatDateKey(date);
+};
+
+const buildEmptyChartData = (timeFilter, selectedDate) => {
+  if (timeFilter === "daily") {
+    return Array.from({ length: 24 }, (_, hour) => ({
+      label: `${hour}:00`,
+      vibration: 0,
+      temperature: 0,
+      power: 0,
+      noise: 0,
+    }));
+  }
+
+  if (timeFilter === "weekly") {
+    return Array.from({ length: 7 }, (_, idx) => {
+      const dateKey = addDaysToDateKey(selectedDate, -(6 - idx));
+      return {
+        label: new Date(`${dateKey}T00:00:00`).toLocaleDateString("id-ID", {
+          day: "2-digit",
+          month: "2-digit",
+        }),
+        vibration: 0,
+        temperature: 0,
+        power: 0,
+        noise: 0,
+      };
+    });
+  }
+
+  return Array.from({ length: 7 }, (_, idx) => {
+    const dateKey = addDaysToDateKey(selectedDate, -(6 - idx));
+    return {
+      label: new Date(`${dateKey}T00:00:00`).toLocaleDateString("id-ID", {
+        day: "2-digit",
+        month: "2-digit",
+      }),
+      vibration: 0,
+      temperature: 0,
+      power: 0,
+      noise: 0,
+    };
+  });
+};
+
+const averageValidValues = (values = []) => {
+  const validValues = values.filter(
+    (value) => typeof value === "number" && !Number.isNaN(value) && value >= 0,
+  );
+  if (!validValues.length) return 0;
+  return Number(
+    (
+      validValues.reduce((sum, value) => sum + value, 0) / validValues.length
+    ).toFixed(2),
+  );
+};
+
+const isSameMotor = (data, motorKey) => {
+  return data?.subMotorId === motorKey || data?.motorId === motorKey;
+};
+
+const getPowerFromPhase = (phase = {}) => {
+  const pr = Number(phase?.R?.power ?? 0);
+  const ps = Number(phase?.S?.power ?? 0);
+  const pt = Number(phase?.T?.power ?? 0);
+  return pr + ps + pt;
+};
+
+const extractSensorMetrics = (data = {}) => {
+  const params = data.parameters || {};
+  return {
+    vibration: Number(params.vibration ?? data.vibration ?? 0),
+    temperature: Number(params.temperature ?? data.temperature ?? 0),
+    power: Number(params.power ?? getPowerFromPhase(data.phase)),
+    noise: Number(params.noise ?? data.noise ?? 0),
+  };
+};
+
+const downloadExcelFile = (filename, rows, sheetName = "History") => {
+  const workbook = XLSX.utils.book_new();
+  const worksheet = XLSX.utils.aoa_to_sheet(rows);
+  XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+  XLSX.writeFile(workbook, filename);
+};
+
 const MonitoringDashboard = ({ selectedMotor, selectedSubMotor }) => {
   const [sensorData, setSensorData] = useState({
     vibration: 4.5,
     temperature: 65.0,
-    current: 12.3,
-    power: 1200,
+    power: 1230.0,
     noise: 75.5,
   });
 
@@ -27,89 +138,540 @@ const MonitoringDashboard = ({ selectedMotor, selectedSubMotor }) => {
   const [chartData, setChartData] = useState([]);
   const [hoveredPoint, setHoveredPoint] = useState(null);
   const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().split("T")[0]
+    new Date().toISOString().split("T")[0],
   ); // Format: YYYY-MM-DD untuk grafik historis
-  
+
   // State untuk bar charts individual (7 hari)
   const [barChartDate, setBarChartDate] = useState(
-    new Date().toISOString().split("T")[0]
+    new Date().toISOString().split("T")[0],
   );
   const [barChartData, setBarChartData] = useState([]);
+  const [historyMilestones, setHistoryMilestones] = useState([]);
+  const [selectedHistoryMarker, setSelectedHistoryMarker] = useState("");
 
   // Load thresholds from Firestore with real-time sync
   const [thresholds, setThresholds] = useState(DEFAULT_THRESHOLDS);
-  
+
   useEffect(() => {
     const thresholdsRef = doc(db, "monitoringSettings", "thresholds");
-    
-    const unsubscribe = onSnapshot(thresholdsRef, (doc) => {
-      if (doc.exists()) {
-        const data = doc.data();
-        setThresholds(data);
-        console.log(
-          "[MonitoringDashboard] Loaded/Updated thresholds from Firestore:",
-          data
-        );
-      }
-    }, (error) => {
-      console.error("Failed to load thresholds from Firestore:", error);
-    });
+
+    const unsubscribe = onSnapshot(
+      thresholdsRef,
+      (doc) => {
+        if (doc.exists()) {
+          const data = doc.data();
+          setThresholds(data);
+          console.log(
+            "[MonitoringDashboard] Loaded/Updated thresholds from Firestore:",
+            data,
+          );
+        }
+      },
+      (error) => {
+        console.error("Failed to load thresholds from Firestore:", error);
+      },
+    );
 
     return () => unsubscribe();
   }, []);
 
-  // Simulasi data sensor real-time
+  // Data source mode: 'firebase' or 'dummy'
+    const [dataSource, setDataSource] = useState("dummy");
+  const [mlStatus, setMlStatus] = useState(null); // ML prediction status
+
+  // Base data dari Firebase (update setiap 30 detik)
+  const [baseData, setBaseData] = useState(null);
+  const [lastDataTimestamp, setLastDataTimestamp] = useState(null);
+  const [currentMotorKey, setCurrentMotorKey] = useState(null);
+  const activeMotorKey = MOTOR_MAPPING[selectedSubMotor] || "";
+
+  // Subscribe ke Firebase (data update setiap 30 detik dari hardware)
   useEffect(() => {
-    // Set initial data immediately
-    const initialData = generateSensorData(Math.random() > 0.4);
-    setSensorData(initialData);
-    console.log("[MonitoringDashboard] Initial sensor data:", initialData);
+    const loadHistoryMilestones = async () => {
+      if (!activeMotorKey) {
+        setHistoryMilestones([]);
+        return;
+      }
 
-    const interval = setInterval(() => {
-      const shouldGenerateAbnormal = Math.random() > 0.4;
-      const newData = generateSensorData(shouldGenerateAbnormal);
-      console.log("[MonitoringDashboard] New sensor data:", newData);
-      setSensorData(newData);
+      try {
+        const startWindow = Date.now() - 14 * 24 * 60 * 60 * 1000;
+        const snapshot = await getDocs(
+          query(
+            collection(db, "sensorReadings"),
+            where("timestampMs", ">=", startWindow),
+            orderBy("timestampMs", "asc"),
+          ),
+        );
 
-      // Deteksi parameter yang abnormal
-      const abnormalParams = [];
-      Object.keys(newData).forEach((key) => {
-        const value = newData[key];
-        const threshold = thresholds[key];
-        if (value < threshold.min || value > threshold.max) {
-          abnormalParams.push(key);
-          console.log(
-            `[MonitoringDashboard] ⚠️ ${key} ABNORMAL: ${value} (threshold: ${threshold.min}-${threshold.max})`
+        const dateSet = new Set();
+        snapshot.forEach((docItem) => {
+          const item = docItem.data();
+          if (!isSameMotor(item, activeMotorKey)) return;
+          const ts = Number(item.timestampMs);
+          if (!Number.isFinite(ts)) return;
+          dateSet.add(formatDateKey(ts));
+        });
+
+        const sortedDates = Array.from(dateSet).sort((a, b) =>
+          a.localeCompare(b),
+        );
+
+        if (!sortedDates.length) {
+          setHistoryMilestones([]);
+          return;
+        }
+
+        setHistoryMilestones(
+          sortedDates.map((dateKey, index) => ({
+            dayNumber: index + 1,
+            targetDate: dateKey,
+            available: true,
+          })),
+        );
+      } catch (error) {
+        console.error(
+          "[MonitoringDashboard] Failed to load milestone dates:",
+          error,
+        );
+        setHistoryMilestones([]);
+      }
+    };
+
+    loadHistoryMilestones();
+  }, [activeMotorKey]);
+
+  useEffect(() => {
+    const activeMarker = historyMilestones.find(
+      (item) => item.available && item.targetDate === selectedDate,
+    );
+    setSelectedHistoryMarker(
+      activeMarker ? String(activeMarker.dayNumber) : "",
+    );
+  }, [historyMilestones, selectedDate]);
+
+  useEffect(() => {
+    const motorMapping = {
+      "Motor Mainshakeout": "motor_main_shakeout",
+      "Motor Sand Crusher": "motor_sand_crusher",
+      // Fallback mappings (legacy names)
+      "Shakeout Reguler": "motor_main_shakeout",
+    };
+
+    const motorKey = motorMapping[selectedSubMotor] || "";
+
+    // Reset saat ganti motor
+    if (motorKey !== currentMotorKey) {
+      setCurrentMotorKey(motorKey);
+      setBaseData(null);
+      setLastDataTimestamp(null);
+      setDataSource("dummy");
+      console.log(`[MonitoringDashboard] Switched to motor: ${motorKey}`);
+    }
+
+    if (motorKey) {
+      // Function to fetch and update sensor data
+      const fetchLatestSensorData = async () => {
+        try {
+          const sensorQuery = query(
+            collection(db, "sensorReadings"),
+            orderBy("timestampMs", "desc"),
+            limit(20),
           );
+
+          const snapshot = await getDocs(sensorQuery);
+          if (!snapshot.empty) {
+            const latestDoc = snapshot.docs
+              .map((docItem) => docItem.data())
+              .find((item) => isSameMotor(item, motorKey));
+
+            if (!latestDoc) {
+              setDataSource("dummy");
+              setBaseData(null);
+              return;
+            }
+
+            const metrics = extractSensorMetrics(latestDoc);
+            const docTimestamp = latestDoc.timestampMs;
+
+            // Cek apakah data masih fresh (dalam 2 menit terakhir)
+            const now = Date.now();
+            const dataAge = now - docTimestamp;
+            const maxAge = 2 * 60 * 1000; // 2 menit
+
+            if (dataAge > maxAge) {
+              console.log(
+                `[MonitoringDashboard] ⚠️ Data terlalu lama (${Math.round(dataAge / 1000)}s), hardware mungkin off`,
+              );
+              setDataSource("offline");
+              setBaseData(null);
+              return;
+            }
+
+            if (Number.isFinite(metrics.vibration)) {
+              setDataSource("firebase");
+              setLastDataTimestamp(docTimestamp);
+              // Simpan sebagai base data dengan motorKey
+              setBaseData({
+                motorKey: motorKey,
+                vibration: metrics.vibration,
+                temperature: metrics.temperature,
+                power: metrics.power,
+                noise: metrics.noise,
+              });
+
+              // Set ML status if available
+              if (latestDoc.mlPrediction) {
+                setMlStatus({
+                  status: latestDoc.status,
+                  isWarning: latestDoc.isWarning,
+                  prediction: latestDoc.mlPrediction,
+                });
+              }
+
+              console.log(
+                `[MonitoringDashboard] 🔥 Data dari Firebase [${motorKey}]:`,
+                metrics,
+              );
+              return;
+            }
+          }
+
+          // Jika tidak ada data real dari Firebase, gunakan dummy
+          console.log("[MonitoringDashboard] No Firebase data, using dummy");
+          setDataSource("dummy");
+          setBaseData(null);
+        } catch (error) {
+          console.warn("[MonitoringDashboard] Firebase fetch error:", error);
+          setDataSource("dummy");
+          setBaseData(null);
+        }
+      };
+
+      // Fetch immediately on mount
+      fetchLatestSensorData();
+
+      // Setup 2-second polling for real-time gauge updates
+      // This ensures gauge updates every 2s to match ESP32 sensor read interval
+      const pollInterval = setInterval(() => {
+        fetchLatestSensorData();
+      }, 2000); // 2 second polling for real-time dashboard
+
+      return () => clearInterval(pollInterval);
+    }
+
+    // Fallback: gunakan dummy data
+    setDataSource("dummy");
+    setBaseData(null);
+  }, [selectedSubMotor, currentMotorKey]);
+
+  // Tampilkan data dari Firebase (TANPA variasi tambahan)
+  // Hanya update ketika ada data baru dari Firebase
+  useEffect(() => {
+    // Pastikan baseData sesuai dengan motor yang sedang ditampilkan
+    const motorMapping = {
+      "Motor Mainshakeout": "motor_main_shakeout",
+      "Motor Sand Crusher": "motor_sand_crusher",
+      "Shakeout Reguler": "motor_main_shakeout",
+    };
+    const expectedMotorKey = motorMapping[selectedSubMotor] || "";
+
+    if (
+      dataSource === "firebase" &&
+      baseData &&
+      baseData.motorKey === expectedMotorKey
+    ) {
+      // Cek apakah data masih fresh (dalam 2 menit terakhir)
+      if (lastDataTimestamp) {
+        const now = Date.now();
+        const dataAge = now - lastDataTimestamp;
+        const maxAge = 2 * 60 * 1000; // 2 menit
+
+        if (dataAge > maxAge) {
+          console.log(
+            `[MonitoringDashboard] Data expired (${Math.round(dataAge / 1000)}s old), switching to offline`,
+          );
+          setDataSource("offline");
+          return;
+        }
+      }
+
+      // Tampilkan data langsung dari Firebase - TANPA variasi
+      setSensorData({
+        vibration: baseData.vibration,
+        temperature: baseData.temperature,
+        power: baseData.power,
+        noise: baseData.noise,
+      });
+
+      // Deteksi abnormal
+      const abnormalParams = [];
+      Object.keys(baseData).forEach((key) => {
+        if (key === "motorKey") return;
+        const value = baseData[key];
+        const threshold = thresholds[key];
+        if (threshold && (value < threshold.min || value > threshold.max)) {
+          abnormalParams.push(key);
         }
       });
 
-      // SELALU update global warning system (clear jika kosong, set jika ada abnormal)
       if (selectedSubMotor) {
-        console.log(
-          `[MonitoringDashboard] Updating warning for ${selectedSubMotor}:`,
-          abnormalParams
-        );
         updateGlobalWarning(selectedSubMotor, abnormalParams);
-      } else {
-        console.warn("[MonitoringDashboard] No selectedSubMotor!");
       }
-    }, 2000); // Update every 2 seconds
+    }
+  }, [baseData, dataSource, selectedSubMotor, thresholds, lastDataTimestamp]);
 
-    return () => clearInterval(interval);
-  }, [selectedSubMotor]);
+  // Offline/Dummy mode - hardware tidak aktif, tampilkan 0 dan STOP
+  useEffect(() => {
+    if (dataSource === "offline" || dataSource === "dummy") {
+      // Tampilkan nilai 0 - tidak ada generator dummy
+      setSensorData({
+        vibration: 0,
+        temperature: 0,
+        power: 0,
+        noise: 0,
+      });
 
-  // Generate chart data berdasarkan timeFilter (grafik historis)
+      // Clear warnings
+      if (selectedSubMotor) {
+        updateGlobalWarning(selectedSubMotor, []);
+      }
+
+      console.log("[MonitoringDashboard] Hardware OFF - data = 0, stopped");
+    }
+  }, [dataSource, selectedSubMotor]);
+
+  // Generate chart data berdasarkan timeFilter (grafik historis) dari Firestore
   useEffect(() => {
-    const data = generateChartData(timeFilter);
-    setChartData(data);
-  }, [timeFilter]);
-  
-  // Generate bar chart data (7 hari) berdasarkan barChartDate
+    const loadChartDataFromFirestore = async () => {
+      if (!activeMotorKey) {
+        setChartData(buildEmptyChartData(timeFilter, selectedDate));
+        return;
+      }
+
+      try {
+        if (timeFilter === "daily") {
+          const dayStart = new Date(`${selectedDate}T00:00:00`).getTime();
+          const dayEnd = new Date(`${selectedDate}T23:59:59.999`).getTime();
+
+          const dailyQuery = query(
+            collection(db, "sensorReadings"),
+            where("subMotorId", "==", activeMotorKey),
+            where("timestampMs", ">=", dayStart),
+            where("timestampMs", "<=", dayEnd),
+            orderBy("timestampMs", "asc"),
+          );
+
+          const snapshot = await getDocs(dailyQuery);
+          const hourlyBuckets = Array.from({ length: 24 }, (_, hour) => ({
+            label: `${hour}:00`,
+            vibration: [],
+            temperature: [],
+            power: [],
+            noise: [],
+          }));
+
+          snapshot.forEach((docItem) => {
+            const data = docItem.data();
+            if (!isSameMotor(data, activeMotorKey)) return;
+
+            const metrics = extractSensorMetrics(data);
+            const hour = new Date(data.timestampMs).getHours();
+
+            if (hour < 0 || hour > 23) return;
+
+            hourlyBuckets[hour].vibration.push(metrics.vibration);
+            hourlyBuckets[hour].temperature.push(metrics.temperature);
+            hourlyBuckets[hour].power.push(metrics.power);
+            hourlyBuckets[hour].noise.push(metrics.noise);
+          });
+
+          setChartData(
+            hourlyBuckets.map((bucket) => ({
+              label: bucket.label,
+              vibration: averageValidValues(bucket.vibration),
+              temperature: averageValidValues(bucket.temperature),
+              power: averageValidValues(bucket.power),
+              noise: averageValidValues(bucket.noise),
+            })),
+          );
+          return;
+        }
+
+        const weekStart = new Date(`${addDaysToDateKey(selectedDate, -6)}T00:00:00`).getTime();
+        const weekEnd = new Date(`${selectedDate}T23:59:59.999`).getTime();
+        const weeklyQuery = query(
+          collection(db, "sensorReadings"),
+          where("timestampMs", ">=", weekStart),
+          where("timestampMs", "<=", weekEnd),
+          orderBy("timestampMs", "asc"),
+        );
+
+        const weeklySnapshot = await getDocs(weeklyQuery);
+        const weeklyMap = new Map(
+          Array.from({ length: 7 }, (_, idx) => {
+            const dateKey = addDaysToDateKey(selectedDate, -(6 - idx));
+            return [
+              dateKey,
+              { vibration: [], temperature: [], power: [], noise: [] },
+            ];
+          }),
+        );
+
+        weeklySnapshot.forEach((docItem) => {
+          const data = docItem.data();
+          if (!isSameMotor(data, activeMotorKey)) return;
+
+          const dateKey = formatDateKey(data.timestampMs);
+          const bucket = weeklyMap.get(dateKey);
+          if (!bucket) return;
+
+          const metrics = extractSensorMetrics(data);
+          bucket.vibration.push(metrics.vibration);
+          bucket.temperature.push(metrics.temperature);
+          bucket.power.push(metrics.power);
+          bucket.noise.push(metrics.noise);
+        });
+
+        const weeklyData = Array.from({ length: 7 }, (_, idx) => {
+          const dateKey = addDaysToDateKey(selectedDate, -(6 - idx));
+          const bucket = weeklyMap.get(dateKey) || {
+            vibration: [],
+            temperature: [],
+            power: [],
+            noise: [],
+          };
+
+          return {
+            label: new Date(`${dateKey}T00:00:00`).toLocaleDateString("id-ID", {
+              day: "2-digit",
+              month: "2-digit",
+            }),
+            vibration: averageValidValues(bucket.vibration),
+            temperature: averageValidValues(bucket.temperature),
+            power: averageValidValues(bucket.power),
+            noise: averageValidValues(bucket.noise),
+          };
+        });
+
+        setChartData(weeklyData);
+      } catch (error) {
+        console.error(
+          "[MonitoringDashboard] Failed to load chart data:",
+          error,
+        );
+        setChartData(buildEmptyChartData(timeFilter, selectedDate));
+      }
+    };
+
+    loadChartDataFromFirestore();
+  }, [timeFilter, selectedDate, activeMotorKey]);
+
+  // Generate bar chart data (7 hari) langsung dari raw sensorReadings
   useEffect(() => {
-    const data = generateWeeklyBarData(barChartDate);
-    setBarChartData(data);
-  }, [barChartDate]);
+    const loadBarChartDataFromFirestore = async () => {
+      if (!activeMotorKey) {
+        setBarChartData([]);
+        return;
+      }
+
+      try {
+        const rangeStart = new Date(`${addDaysToDateKey(barChartDate, -6)}T00:00:00`).getTime();
+        const rangeEnd = new Date(`${barChartDate}T23:59:59.999`).getTime();
+        const rawQuery = query(
+          collection(db, "sensorReadings"),
+          where("timestampMs", ">=", rangeStart),
+          where("timestampMs", "<=", rangeEnd),
+          orderBy("timestampMs", "asc"),
+        );
+
+        const rawSnapshot = await getDocs(rawQuery);
+        const weeklyMap = new Map(
+          Array.from({ length: 7 }, (_, idx) => {
+            const dateKey = addDaysToDateKey(barChartDate, -(6 - idx));
+            return [
+              dateKey,
+              { vibration: [], temperature: [], power: [], noise: [] },
+            ];
+          }),
+        );
+
+        rawSnapshot.forEach((docItem) => {
+          const data = docItem.data();
+          if (!isSameMotor(data, activeMotorKey)) return;
+
+          const dateKey = formatDateKey(data.timestampMs);
+          const bucket = weeklyMap.get(dateKey);
+          if (!bucket) return;
+
+          const metrics = extractSensorMetrics(data);
+          bucket.vibration.push(metrics.vibration);
+          bucket.temperature.push(metrics.temperature);
+          bucket.power.push(metrics.power);
+          bucket.noise.push(metrics.noise);
+        });
+
+        const weeklyPoints = Array.from({ length: 7 }, (_, idx) => {
+          const dateKey = addDaysToDateKey(barChartDate, -(6 - idx));
+          const bucket = weeklyMap.get(dateKey) || {
+            vibration: [],
+            temperature: [],
+            power: [],
+            noise: [],
+          };
+
+          return {
+            label: new Date(`${dateKey}T00:00:00`).toLocaleDateString("id-ID", {
+              weekday: "short",
+            }),
+            date: dateKey,
+            vibration: averageValidValues(bucket.vibration),
+            temperature: averageValidValues(bucket.temperature),
+            power: averageValidValues(bucket.power),
+            noise: averageValidValues(bucket.noise),
+          };
+        });
+
+        setBarChartData(weeklyPoints);
+      } catch (error) {
+        console.error(
+          "[MonitoringDashboard] Failed to load bar chart data:",
+          error,
+        );
+        setBarChartData([]);
+      }
+    };
+
+    loadBarChartDataFromFirestore();
+  }, [barChartDate, activeMotorKey]);
+
+  const exportHistoryExcel = () => {
+    const rows = [
+      ["Motor", selectedSubMotor || "-"],
+      ["Mode Grafik", timeFilter],
+      ["Tanggal Referensi", selectedDate],
+      [],
+      ["Marker Hari", "Tanggal", "Tersedia"],
+      ...historyMilestones.map((item) => [
+        `Hari ${item.dayNumber}`,
+        item.targetDate,
+        item.available ? "Ya" : "Belum",
+      ]),
+      [],
+      ["Label", "Vibration", "Temperature", "Power", "Noise"],
+      ...chartData.map((item) => [
+        item.label,
+        item.vibration,
+        item.temperature,
+        item.power,
+        item.noise,
+      ]),
+    ];
+
+    downloadExcelFile(
+      `histori_${activeMotorKey || "motor"}_${timeFilter}_${selectedDate}.xlsx`,
+      rows,
+    );
+  };
 
   const parameters = PARAMETERS_CONFIG.map((config) => ({
     ...config,
@@ -214,18 +776,6 @@ const MonitoringDashboard = ({ selectedMotor, selectedSubMotor }) => {
               );
             })}
 
-            {/* Center unit text */}
-            <text
-              x="100"
-              y="115"
-              textAnchor="middle"
-              fontSize="16"
-              fill="#1e293b"
-              fontWeight="700"
-            >
-              {param.unit}
-            </text>
-
             {/* Center dot */}
             <circle cx="100" cy="130" r="5" fill="#1e293b" />
           </svg>
@@ -245,9 +795,26 @@ const MonitoringDashboard = ({ selectedMotor, selectedSubMotor }) => {
                 {formatVibrationValue(param.value).unit}
               </div>
             </div>
+          ) : param.name === "Temperature" ? (
+            <div className="value-with-unit">
+              <div className="value-number" style={{ color: param.color }}>
+                {param.value}
+              </div>
+              <div className="value-unit">°C</div>
+            </div>
+          ) : param.name === "Power" ? (
+            <div className="value-with-unit">
+              <div className="value-number" style={{ color: param.color }}>
+                {param.value}
+              </div>
+              <div className="value-unit">W</div>
+            </div>
           ) : (
-            <div className="value-display" style={{ color: param.color }}>
-              {param.value}
+            <div className="value-with-unit">
+              <div className="value-number" style={{ color: param.color }}>
+                {param.value}
+              </div>
+              <div className="value-unit">dB</div>
             </div>
           )}
         </div>
@@ -279,24 +846,40 @@ const MonitoringDashboard = ({ selectedMotor, selectedSubMotor }) => {
         >
           {/* Define gradient untuk setiap bar */}
           <defs>
-            <linearGradient id={`barGradient-${param.key}`} x1="0%" y1="100%" x2="0%" y2="0%">
-              <stop offset="0%" style={{ stopColor: '#1e3a8a', stopOpacity: 1 }} /> {/* Biru gelap di bawah */}
-              <stop offset="100%" style={{ stopColor: '#93c5fd', stopOpacity: 1 }} /> {/* Biru muda di atas */}
+            <linearGradient
+              id={`barGradient-${param.key}`}
+              x1="0%"
+              y1="100%"
+              x2="0%"
+              y2="0%"
+            >
+              <stop
+                offset="0%"
+                style={{ stopColor: "#1e3a8a", stopOpacity: 1 }}
+              />{" "}
+              {/* Biru gelap di bawah */}
+              <stop
+                offset="100%"
+                style={{ stopColor: "#93c5fd", stopOpacity: 1 }}
+              />{" "}
+              {/* Biru muda di atas */}
             </linearGradient>
           </defs>
           {/* Y-axis grid lines and labels */}
           {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
             const y = padding.top + innerHeight - ratio * innerHeight;
-            const value = (maxValue * ratio).toFixed(ratio === 0 || ratio === 1 ? 0 : 1);
-            
+            const value = (maxValue * ratio).toFixed(
+              ratio === 0 || ratio === 1 ? 0 : 1,
+            );
+
             let labelText;
-            if (dataKey === 'vibration') {
+            if (dataKey === "vibration") {
               const formatted = formatVibrationValue(parseFloat(value));
-              labelText = formatted.value + ' ' + formatted.unit; // Tambah spasi dan unit lengkap
+              labelText = formatted.value + " " + formatted.unit; // Tambah spasi dan unit lengkap
             } else {
               labelText = value;
             }
-            
+
             return (
               <g key={ratio}>
                 <line
@@ -319,16 +902,16 @@ const MonitoringDashboard = ({ selectedMotor, selectedSubMotor }) => {
               </g>
             );
           })}
-          
+
           {/* Y-axis label */}
           <text
-            x={10}
+            x={0}
             y={chartHeight / 2}
             textAnchor="middle"
             fill="#64748b"
             fontSize="11"
             fontWeight="600"
-            transform={`rotate(-90, 10, ${chartHeight / 2})`}
+            transform={`rotate(-90, 0, ${chartHeight / 2})`}
           >
             {param.unit}
           </text>
@@ -338,14 +921,14 @@ const MonitoringDashboard = ({ selectedMotor, selectedSubMotor }) => {
             // Gunakan barChartData (7 hari)
             const barCount = barChartData.length;
             const barGap = innerWidth / (barCount + 1);
-            
+
             return barChartData.map((point, idx) => {
               const value = point[dataKey];
               let barHeight = (value / maxValue) * innerHeight;
-              
+
               // Minimum bar height untuk visibility
               if (barHeight < 3 && value > 0) barHeight = 3;
-              
+
               const barWidth = barGap * 0.7; // 70% of available space
               const x = padding.left + (idx + 1) * barGap - barWidth / 2;
               const y = padding.top + innerHeight - barHeight;
@@ -368,9 +951,9 @@ const MonitoringDashboard = ({ selectedMotor, selectedSubMotor }) => {
                     fontSize="10"
                     fontWeight="600"
                   >
-                    {dataKey === 'vibration' 
-                      ? formatVibrationValue(value).value 
-                      : value.toFixed(dataKey === 'power' ? 0 : 1)}
+                    {dataKey === "vibration"
+                      ? formatVibrationValue(value).value
+                      : value.toFixed(dataKey === "power" ? 0 : 1)}
                   </text>
                 </g>
               );
@@ -382,7 +965,7 @@ const MonitoringDashboard = ({ selectedMotor, selectedSubMotor }) => {
             // Gunakan barChartData (7 hari)
             const barCount = barChartData.length;
             const barGap = innerWidth / (barCount + 1);
-            
+
             return barChartData.map((point, idx) => {
               const x = padding.left + (idx + 1) * barGap;
               return (
@@ -415,15 +998,27 @@ const MonitoringDashboard = ({ selectedMotor, selectedSubMotor }) => {
 
     if (chartData.length === 0) return null;
 
-    // Normalize data untuk masing-masing parameter (sesuaikan dengan max value yang benar)
-    const normalizedData = chartData.map((point) => ({
-      ...point,
-      vibrationNorm: (point.vibration / 1000000000) * 100, // Max 1GHz = 1,000,000,000 Hz
-      temperatureNorm: (point.temperature / 1024) * 100, // Max 1024°C
-      currentNorm: (point.current / 100) * 100, // Max 100A
-      powerNorm: (point.power / 23) * 100, // Max 23 kW
-      noiseNorm: (point.noise / 120) * 100, // Max 120 dB
-    }));
+    // Normalize data untuk masing-masing parameter menggunakan max value dari PARAMETERS_CONFIG
+    // Jadi Level Relatif (%) = (nilai / max) * 100
+    const normalizedData = chartData.map((point) => {
+      const vibrationParam = PARAMETERS_CONFIG.find(
+        (p) => p.key === "vibration",
+      );
+      const temperatureParam = PARAMETERS_CONFIG.find(
+        (p) => p.key === "temperature",
+      );
+      const powerParam = PARAMETERS_CONFIG.find((p) => p.key === "power");
+      const noiseParam = PARAMETERS_CONFIG.find((p) => p.key === "noise");
+
+      return {
+        ...point,
+        vibrationNorm: (point.vibration / (vibrationParam?.max || 150)) * 100,
+        temperatureNorm:
+          (point.temperature / (temperatureParam?.max || 1024)) * 100,
+        powerNorm: (point.power / (powerParam?.max || 23000)) * 100,
+        noiseNorm: (point.noise / (noiseParam?.max || 120)) * 100,
+      };
+    });
 
     // Generate path untuk setiap parameter
     const generatePath = (key) => {
@@ -468,6 +1063,62 @@ const MonitoringDashboard = ({ selectedMotor, selectedSubMotor }) => {
               flexWrap: "wrap",
             }}
           >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                background: "#f8fafc",
+                padding: "6px 10px",
+                borderRadius: "10px",
+                border: "1px solid #e2e8f0",
+              }}
+            >
+              <span
+                style={{ fontSize: "12px", fontWeight: 700, color: "#475569" }}
+              >
+                Hari ke-
+              </span>
+              <select
+                value={selectedHistoryMarker}
+                onChange={(e) => {
+                  const selectedDay = e.target.value;
+                  setSelectedHistoryMarker(selectedDay);
+
+                  const milestone = historyMilestones.find(
+                    (item) => String(item.dayNumber) === selectedDay,
+                  );
+
+                  if (milestone?.available) {
+                    setSelectedDate(milestone.targetDate);
+                    setBarChartDate(milestone.targetDate);
+                  }
+                }}
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  fontSize: "12px",
+                  fontWeight: 700,
+                  color: "#1e293b",
+                  outline: "none",
+                  cursor: "pointer",
+                }}
+              >
+                <option value="">Pilih</option>
+                {historyMilestones.map((item) => (
+                  <option
+                    key={item.dayNumber}
+                    value={String(item.dayNumber)}
+                    disabled={!item.available}
+                  >
+                    {item.available
+                      ? `${item.dayNumber} (${item.targetDate})`
+                      : `${item.dayNumber} (belum ada)`}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {/* Date Picker */}
             <div
               style={{
@@ -503,7 +1154,7 @@ const MonitoringDashboard = ({ selectedMotor, selectedSubMotor }) => {
 
             {/* Time Filter Buttons */}
             <div className="chart-filters">
-              {["daily", "weekly", "monthly"].map((filter) => (
+              {["daily", "weekly"].map((filter) => (
                 <button
                   key={filter}
                   onClick={() => setTimeFilter(filter)}
@@ -515,6 +1166,23 @@ const MonitoringDashboard = ({ selectedMotor, selectedSubMotor }) => {
                 </button>
               ))}
             </div>
+
+            <button
+              type="button"
+              onClick={exportHistoryExcel}
+              style={{
+                border: "none",
+                background: "#0f766e",
+                color: "#ffffff",
+                padding: "8px 14px",
+                borderRadius: "8px",
+                fontSize: "12px",
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              Export Excel
+            </button>
           </div>
         </div>
 
@@ -550,7 +1218,7 @@ const MonitoringDashboard = ({ selectedMotor, selectedSubMotor }) => {
               </g>
             );
           })}
-          
+
           {/* Y-axis label */}
           <text
             x={15}
@@ -596,15 +1264,9 @@ const MonitoringDashboard = ({ selectedMotor, selectedSubMotor }) => {
             strokeWidth="2.5"
           />
           <path
-            d={generatePath("currentNorm")}
-            fill="none"
-            stroke="#f59e0b"
-            strokeWidth="2.5"
-          />
-          <path
             d={generatePath("powerNorm")}
             fill="none"
-            stroke="#8b5cf6"
+            stroke="#f59e0b"
             strokeWidth="2.5"
           />
           <path
@@ -629,10 +1291,6 @@ const MonitoringDashboard = ({ selectedMotor, selectedSubMotor }) => {
               padding.top +
               innerHeight -
               (point.temperatureNorm / 100) * innerHeight;
-            const yCurrent =
-              padding.top +
-              innerHeight -
-              (point.currentNorm / 100) * innerHeight;
             const yPower =
               padding.top + innerHeight - (point.powerNorm / 100) * innerHeight;
             const yNoise =
@@ -658,22 +1316,13 @@ const MonitoringDashboard = ({ selectedMotor, selectedSubMotor }) => {
                   stroke="#ef4444"
                   strokeWidth="2"
                 />
-                {/* Current bullet */}
-                <circle
-                  cx={x}
-                  cy={yCurrent}
-                  r="4"
-                  fill="#fff"
-                  stroke="#f59e0b"
-                  strokeWidth="2"
-                />
                 {/* Power bullet */}
                 <circle
                   cx={x}
                   cy={yPower}
                   r="4"
                   fill="#fff"
-                  stroke="#8b5cf6"
+                  stroke="#f59e0b"
                   strokeWidth="2"
                 />
                 {/* Noise bullet */}
@@ -751,7 +1400,15 @@ const MonitoringDashboard = ({ selectedMotor, selectedSubMotor }) => {
                       fill="#3b82f6"
                       fontSize="11"
                     >
-                      Vib: {formatVibrationValue(chartData[hoveredPoint].vibration).value} {formatVibrationValue(chartData[hoveredPoint].vibration).unit}
+                      Vib:{" "}
+                      {
+                        formatVibrationValue(chartData[hoveredPoint].vibration)
+                          .value
+                      }{" "}
+                      {
+                        formatVibrationValue(chartData[hoveredPoint].vibration)
+                          .unit
+                      }
                     </text>
                     <text
                       x={x + 20}
@@ -767,19 +1424,11 @@ const MonitoringDashboard = ({ selectedMotor, selectedSubMotor }) => {
                       fill="#f59e0b"
                       fontSize="11"
                     >
-                      Curr: {chartData[hoveredPoint].current.toFixed(2)} A
+                      Power: {chartData[hoveredPoint].power.toFixed(1)} W
                     </text>
                     <text
                       x={x + 20}
                       y={padding.top + 95}
-                      fill="#8b5cf6"
-                      fontSize="11"
-                    >
-                      Pow: {chartData[hoveredPoint].power.toFixed(1)} kW
-                    </text>
-                    <text
-                      x={x + 20}
-                      y={padding.top + 110}
                       fill="#10b981"
                       fontSize="11"
                     >
@@ -813,40 +1462,60 @@ const MonitoringDashboard = ({ selectedMotor, selectedSubMotor }) => {
   return (
     <div className="monitoring-dashboard">
       <div className="dashboard-container">
-        {/* Header */}
-        <div className="dashboard-header">
-          <h2 className="dashboard-title">
-            DASHBOARD MONITORING MESIN {selectedMotor?.toUpperCase() || ""}
-          </h2>
-          {selectedSubMotor && (
-            <p className="dashboard-subtitle">{selectedSubMotor}</p>
-          )}
-        </div>
-
-        {/* Gauge Meters */}
-        <div className="gauges-grid">
-          {parameters.map((param) => renderGauge(param))}
-        </div>
-
-        {/* Combined Chart */}
-        {renderCombinedChart()}
-
-        {/* Individual Parameter Charts */}
-        <div className="individual-charts-container">
-          <div className="individual-charts-header">
-            <h3 className="section-title">Rata-Rata Parameter Mingguan</h3>
-            <input
-              type="date"
-              value={barChartDate}
-              onChange={(e) => setBarChartDate(e.target.value)}
-              max={new Date().toISOString().split("T")[0]}
-              className="bar-chart-date-picker"
-            />
+        {/* Show loading/selection message if no motor selected */}
+        {!selectedSubMotor ? (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              height: "100vh",
+              flexDirection: "column",
+              gap: "20px",
+              color: "#666",
+            }}
+          >
+            <h2>Pilih Motor pada Sidebar</h2>
+            <p>untuk memulai monitoring</p>
           </div>
-          <div className="individual-charts-grid">
-            {parameters.map((param) => renderIndividualChart(param))}
-          </div>
-        </div>
+        ) : (
+          <>
+            {/* Header with Power Button */}
+            <div className="dashboard-header">
+              <h2 className="dashboard-title">
+                DASHBOARD MONITORING MESIN {selectedMotor?.toUpperCase() || ""}
+              </h2>
+              {selectedSubMotor && (
+                <p className="dashboard-subtitle">{selectedSubMotor}</p>
+              )}
+            </div>
+
+            {/* Gauge Meters */}
+            <div className="gauges-grid">
+              {parameters.map((param) => renderGauge(param))}
+            </div>
+
+            {/* Combined Chart */}
+            {renderCombinedChart()}
+
+            {/* Individual Parameter Charts */}
+            <div className="individual-charts-container">
+              <div className="individual-charts-header">
+                <h3 className="section-title">Rata-Rata Parameter Mingguan</h3>
+                <input
+                  type="date"
+                  value={barChartDate}
+                  onChange={(e) => setBarChartDate(e.target.value)}
+                  max={new Date().toISOString().split("T")[0]}
+                  className="bar-chart-date-picker"
+                />
+              </div>
+              <div className="individual-charts-grid">
+                {parameters.map((param) => renderIndividualChart(param))}
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
